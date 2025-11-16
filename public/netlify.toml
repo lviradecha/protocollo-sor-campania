@@ -1,0 +1,18 @@
+[build]
+  command = "npm install"
+  functions = "netlify/functions"
+  publish = "public"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[plugins]]
+  package = "@netlify/plugin-functions-install-core"
+
+# Scheduled Function - Monitoraggio Gmail ogni 15 minuti (Protocollazione)
+[functions."monitora-gmail"]
+  schedule = "*/15 * * * *"  # Ogni 15 minuti, 24/7 (96 controlli al giorno)
+
+# Scheduled Function - Inoltro Automatico Email ogni 5 minuti
+[functions."forwardEmails"]
+  schedule = "*/15 * * * *"  # Ogni 15 minuti, 24/7 (96 controlli al giorno)

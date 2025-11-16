@@ -1,0 +1,16 @@
+{
+  "name": "protocollo-sor-campania",
+  "version": "1.0.0",
+  "dependencies": {
+    "@sendgrid/mail": "^8.1.4",
+    "adm-zip": "^0.5.16",
+    "bcryptjs": "^2.4.3",
+    "googleapis": "^128.0.0",
+    "jszip": "^3.10.1",
+    "pdf-lib": "^1.17.1",
+    "pg": "^8.11.3",
+    "qrcode": "^1.5.3",
+    "file-type": "^18.0.0"
+  }
+}
+

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestione Utenti - SOR Campania</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Banner con Logo -->
+    <header class="banner">
+        <div class="banner-content">
+            <div class="banner-logo">
+                <img src="logo-sor.jpg" alt="Logo SOR Campania">
+            </div>
+            <div class="banner-text">
+                <h1 class="banner-title">CROCE ROSSA ITALIANA</h1>
+                <p class="banner-subtitle">Sala Operativa Regionale - Campania | Gestione Utenti</p>
+            </div>
+            <button onclick="logout()" class="btn-logout">🚪 Esci</button>
+            <div class="banner-version">v2.0</div>
+        </div>
+    </header>
+
+    <!-- Navigation Menu -->
+    <nav class="nav-menu">
+        <div class="nav-content">
+            <a href="index.html" class="nav-link">📄 Protocollo</a>
+            <a href="registro.html" class="nav-link">📋 Registro</a>
+            <a href="attestati.html" class="nav-link">📜 Attestati</a>
+            <a href="admin.html" class="nav-link active">👥 Utenti</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- Crea Nuovo Utente -->
+        <div class="card">
+            <h2>➕ Crea Nuovo Utente</h2>
+            
+            <form id="creaUtenteForm">
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label for="nome">👤 Nome *</label>
+                        <input type="text" id="nome" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="cognome">👤 Cognome *</label>
+                        <input type="text" id="cognome" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">📧 Email *</label>
+                    <input type="email" id="email" required>
+                    <small>L'email verrà usata per inviare le credenziali</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="username">🔑 Username *</label>
+                    <input type="text" id="username" required>
+                    <small>Lettere minuscole, numeri e underscore</small>
+                </div>
+
+                <div class="form-group">
+                    <label for="ruolo">👔 Ruolo *</label>
+                    <select id="ruolo" required>
+                        <option value="operatore">Operatore (può protocollare)</option>
+                        <option value="admin">Admin (può tutto)</option>
+                    </select>
+                </div>
+
+                <button type="submit" class="btn-primary" id="btnCrea">
+                    ➕ Crea Utente e Invia Email
+                </button>
+            </form>
+
+            <div id="resultCrea" class="result" style="display: none;"></div>
+            <div id="errorCrea" class="error" style="display: none;"></div>
+        </div>
+
+        <!-- Lista Utenti -->
+        <div class="card">
+            <h2>👥 Lista Utenti</h2>
+            
+            <button onclick="caricaUtenti()" class="btn-primary" style="margin-bottom: 20px;">
+                🔄 Aggiorna Lista
+            </button>
+
+            <div id="loadingUtenti" style="display: none; text-align: center; padding: 40px;">
+                <p>⏳ Caricamento...</p>
+            </div>
+
+            <div id="tabellaUtenti" style="display: none; overflow-x: auto;">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Username</th>
+                            <th>Nome Completo</th>
+                            <th>Email</th>
+                            <th>Ruolo</th>
+                            <th>Stato</th>
+                            <th>Ultimo Accesso</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bodyUtenti"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>📞 sor.campania@cri.it | +39 081 7810011 (selezione 2)</p>
+        <p class="footer-small">© 2025 Croce Rossa Italiana - Comitato Regionale Campania</p>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script src="admin.js"></script>
+</body>
+</html>

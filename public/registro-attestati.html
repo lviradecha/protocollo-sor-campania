@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Attestati - SOR Campania</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Stili aggiuntivi per tabella attestati */
+        #attestatiTable {
+            table-layout: auto;
+            width: 100%;
+        }
+        
+        #attestatiTable th:nth-child(1) { width: 10%; } /* Nome */
+        #attestatiTable th:nth-child(2) { width: 10%; } /* Cognome */
+        #attestatiTable th:nth-child(3) { width: 12%; } /* CF */
+        #attestatiTable th:nth-child(4) { width: 20%; } /* Evento */
+        #attestatiTable th:nth-child(5) { width: 12%; } /* Data */
+        #attestatiTable th:nth-child(6) { width: 10%; } /* Stato Email */
+        #attestatiTable th:nth-child(7) { width: 10%; } /* Documento */
+        #attestatiTable th:nth-child(8) { width: 8%; }  /* Dettagli */
+        #attestatiTable th:nth-child(9) { width: 8%; }  /* Elimina */
+        
+        .btn-drive-small, .btn-elimina-small {
+            padding: 4px 8px;
+            font-size: 10px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        
+        .btn-drive-small {
+            background: linear-gradient(135deg, #4285f4, #34a853);
+            color: white;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-elimina-small {
+            background: #d32f2f;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- Banner con Logo -->
+    <header class="banner">
+        <div class="banner-content">
+            <div class="banner-logo">
+                <img src="logo-sor.jpg" alt="Logo SOR Campania">
+            </div>
+            <div class="banner-text">
+                <h1 class="banner-title">CROCE ROSSA ITALIANA</h1>
+                <p class="banner-subtitle">Sala Operativa Regionale - Campania | Registro Attestati</p>
+            </div>
+            <button onclick="logout()" class="btn-logout">🚪 Esci</button>
+            <div class="banner-version">v2.0</div>
+        </div>
+    </header>
+
+    <!-- Navigation Menu -->
+    <nav class="nav-menu">
+        <div class="nav-content">
+            <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+            <a href="index.html" class="nav-link">📄 Protocollo</a>
+            <a href="registro.html" class="nav-link">📋 Registro</a>
+            <a href="attestati.html" class="nav-link">📜 Attestati</a>
+            <a href="registro-attestati.html" class="nav-link active">📊 Reg. Attestati</a>
+            <a href="admin.html" class="nav-link" id="linkAdmin" style="display: none;">👥 Utenti</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <div class="card">
+            <h2>📊 Registro Attestati</h2>
+            
+            <div class="info-box">
+                <p><strong>ℹ️ Registro completo:</strong> Visualizza tutti gli attestati generati con possibilità di filtro per evento e stato email.</p>
+            </div>
+
+            <!-- Filtri -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px;">
+                <div class="form-group" style="margin: 0;">
+                    <label for="filtroEvento">🎯 Evento:</label>
+                    <select id="filtroEvento">
+                        <option value="">Tutti gli eventi</option>
+                        <!-- Popolato dinamicamente -->
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin: 0;">
+                    <label for="filtroEmailStatus">📧 Stato Email:</label>
+                    <select id="filtroEmailStatus">
+                        <option value="">Tutti</option>
+                        <option value="inviata">Inviate</option>
+                        <option value="non_inviata">Non inviate</option>
+                        <option value="no_email">Nessuna email</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin: 0;">
+                    <label for="filtroRicerca">🔍 Ricerca:</label>
+                    <input type="text" id="filtroRicerca" placeholder="Cerca per nome, cognome, CF...">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 25px;">
+                <button onclick="caricaRegistroAttestati()" class="btn-primary">
+                    🔄 Aggiorna Registro
+                </button>
+                <button onclick="exportAttestatiCSV()" class="btn-primary" style="background: #28a745;">
+                    📊 Export CSV
+                </button>
+            </div>
+
+            <!-- Statistiche -->
+            <div id="statsSection" style="display: none; margin-bottom: 25px; padding: 20px; background: #f5f5f5; border-radius: 10px;">
+                <h3 style="margin-bottom: 15px; color: #d32f2f;">📊 Statistiche</h3>
+                <div id="statsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;"></div>
+            </div>
+
+            <div id="loadingSection" style="display: none; text-align: center; padding: 40px;">
+                <p style="font-size: 18px;">⏳ Caricamento in corso...</p>
+            </div>
+
+            <div id="emptySection" style="display: none; text-align: center; padding: 40px; color: #999;">
+                <p style="font-size: 18px;">📭 Nessun attestato trovato</p>
+            </div>
+
+            <div id="tableSection" style="display: none; overflow-x: auto;">
+                <table id="attestatiTable">
+                    <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>Cognome</th>
+                            <th>CF</th>
+                            <th>Evento</th>
+                            <th>Data Gen.</th>
+                            <th>Stato Email</th>
+                            <th>Documento</th>
+                            <th>Dettagli</th>
+                            <th>Elimina</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>📞 sor.campania@cri.it | +39 081 7810011 (selezione 2)</p>
+        <p class="footer-small">© 2025 Croce Rossa Italiana - Comitato Regionale Campania</p>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script>
+        // Mostra link admin solo per admin
+        if (sessionStorage.getItem('ruolo') === 'admin') {
+            document.getElementById('linkAdmin').style.display = 'flex';
+        }
+    </script>
+    <script src="registro-attestati.js"></script>
+    
+    <!-- Export CSV Function -->
+    <script>
+    async function exportAttestatiCSV() {
+        try {
+            console.log('📥 Export attestati CSV...');
+            
+            const evento = document.getElementById('filtroEvento')?.value || '';
+            const emailStatus = document.getElementById('filtroEmailStatus')?.value || '';
+            
+            console.log(`Filtri: evento=${evento}, email_status=${emailStatus}`);
+            
+            let url = `/.netlify/functions/export-attestati-csv?`;
+            
+            if (evento && evento !== '') {
+                url += `evento=${encodeURIComponent(evento)}&`;
+            }
+            if (emailStatus && emailStatus !== '') {
+                url += `email_status=${emailStatus}`;
+            }
+            
+            console.log('URL:', url);
+            
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Errore HTTP: ${response.status}`);
+            }
+            
+            const blob = await response.blob();
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            
+            const eventoLabel = evento && evento !== '' ? evento.replace(/[^a-zA-Z0-9]/g, '_') : 'Tutti';
+            link.download = `Attestati_${eventoLabel}_${new Date().toISOString().split('T')[0]}.csv`;
+            
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            console.log('✅ CSV scaricato!');
+            alert('✅ CSV scaricato con successo!');
+            
+        } catch (error) {
+            console.error('❌ Errore:', error);
+            alert('❌ Errore durante export CSV: ' + error.message);
+        }
+    }
+    </script>
+</body>
+</html>

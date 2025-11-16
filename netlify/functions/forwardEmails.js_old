@@ -1,0 +1,324 @@
+const { google } = require('googleapis');
+const { Pool } = require('pg');
+
+// Configurazione database
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: { rejectUnauthorized: false }
+});
+
+// Configurazione Gmail OAuth
+const oauth2Client = new google.auth.OAuth2(
+  process.env.GMAIL_CLIENT_ID,
+  process.env.GMAIL_CLIENT_SECRET,
+  process.env.GOOGLE_REDIRECT_URI
+);
+
+oauth2Client.setCredentials({
+  refresh_token: process.env.GMAIL_REFRESH_TOKEN
+});
+
+const gmail = google.gmail({ version: 'v1', auth: oauth2Client });
+
+// Funzione per sostituire i placeholder nel template
+function replacePlaceholders(template, data) {
+  return template
+    .replace(/{MITTENTE}/g, data.mittente || '')
+    .replace(/{OGGETTO}/g, data.oggetto || '')
+    .replace(/{DATA}/g, data.data || '')
+    .replace(/{TESTO_ORIGINALE}/g, data.testoOriginale || '')
+    .replace(/{ORA}/g, data.ora || '');
+}
+
+// Funzione per ottenere o creare il label ID
+async function getLabelId(labelPath) {
+  try {
+    const response = await gmail.users.labels.list({
+      userId: 'me'
+    });
+    
+    const label = response.data.labels.find(l => l.name === labelPath);
+    
+    if (label) {
+      return label.id;
+    }
+    
+    // Se non esiste, prova a crearlo
+    console.log(`Label "${labelPath}" non trovato, tentativo di creazione...`);
+    const createResponse = await gmail.users.labels.create({
+      userId: 'me',
+      requestBody: {
+        name: labelPath,
+        labelListVisibility: 'labelShow',
+        messageListVisibility: 'show'
+      }
+    });
+    
+    return createResponse.data.id;
+  } catch (error) {
+    console.error(`Errore recupero/creazione label ${labelPath}:`, error.message);
+    throw error;
+  }
+}
+
+// Funzione per estrarre il testo dall'email
+function getEmailBody(payload) {
+  let body = '';
+  
+  if (payload.parts) {
+    for (const part of payload.parts) {
+      if (part.mimeType === 'text/plain' && part.body.data) {
+        body = Buffer.from(part.body.data, 'base64').toString('utf-8');
+        break;
+      } else if (part.mimeType === 'text/html' && part.body.data && !body) {
+        body = Buffer.from(part.body.data, 'base64').toString('utf-8');
+      }
+    }
+  } else if (payload.body.data) {
+    body = Buffer.from(payload.body.data, 'base64').toString('utf-8');
+  }
+  
+  return body;
+}
+
+// Funzione per creare email inoltrata in stile Gmail nativo
+function createForwardedMimeMessage(to, cc, originalSubject, customMessage, originalMessageRaw) {
+  const boundary = '----=_Part_' + Date.now();
+  
+  let message = [
+    `To: ${to.join(', ')}`,
+  ];
+  
+  // Aggiungi CC se presenti
+  if (cc && cc.length > 0) {
+    message.push(`Cc: ${cc.join(', ')}`);
+  }
+  
+  message.push(
+    `Subject: Fwd: ${originalSubject}`,
+    'MIME-Version: 1.0',
+    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    '',
+    `--${boundary}`,
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: 7bit',
+    '',
+    customMessage,
+    '<br><br>',
+    '---------- Forwarded message ---------',
+    '<br>',
+    ''
+  );
+  
+  // Aggiungi il messaggio originale come parte RFC822
+  message.push(`--${boundary}`);
+  message.push('Content-Type: message/rfc822');
+  message.push('Content-Disposition: attachment');
+  message.push('');
+  message.push(originalMessageRaw);
+  message.push('');
+  message.push(`--${boundary}--`);
+  
+  return Buffer.from(message.join('\r\n')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// Funzione principale
+exports.handler = async (event, context) => {
+  const requestId = context.awsRequestId?.substring(0, 8) || 'manual';
+  console.log(`${requestId} INFO  🔄 Avvio processo inoltro automatico email`);
+  
+  let client;
+  
+  try {
+    // Connessione al database
+    client = await pool.connect();
+    
+    // 1. Recupera le regole attive
+    const regoleResult = await client.query(`
+      SELECT * FROM regole_inoltro_email 
+      WHERE attivo = true 
+      ORDER BY id
+    `);
+    
+    if (regoleResult.rows.length === 0) {
+      console.log(`${requestId} INFO  ℹ️  Nessuna regola di inoltro attiva`);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'Nessuna regola attiva' })
+      };
+    }
+    
+    console.log(`${requestId} INFO  📋 Trovate ${regoleResult.rows.length} regole attive`);
+    
+    // Ottieni il label ID per PROTOCOLLATO/INOLTRATO
+    const inoltratoLabelId = await getLabelId('PROTOCOLLATO/INOLTRATO');
+    console.log(`${requestId} INFO  🏷️  Label ID PROTOCOLLATO/INOLTRATO: ${inoltratoLabelId}`);
+    
+    // 2. Recupera email non lette (o con label specifico)
+    const response = await gmail.users.messages.list({
+      userId: 'me',
+      q: `is:unread -label:PROTOCOLLATO -label:"PROTOCOLLATO/INOLTRATO"`,
+      maxResults: 50
+    });
+    
+    if (!response.data.messages || response.data.messages.length === 0) {
+      console.log(`${requestId} INFO  🔭 Nessuna email da processare`);
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: 'Nessuna email da inoltrare' })
+      };
+    }
+    
+    console.log(`${requestId} INFO  📧 Trovate ${response.data.messages.length} email da analizzare`);
+    
+    let emailInoltrate = 0;
+    
+    // 3. Processa ogni email
+    for (const message of response.data.messages) {
+      try {
+        // Recupera email completa in formato RAW per inoltro nativo
+        const emailDetails = await gmail.users.messages.get({
+          userId: 'me',
+          id: message.id,
+          format: 'full'
+        });
+        
+        // Recupera anche il formato RAW per l'inoltro
+        const emailRaw = await gmail.users.messages.get({
+          userId: 'me',
+          id: message.id,
+          format: 'raw'
+        });
+        
+        const headers = emailDetails.data.payload.headers;
+        const mittente = headers.find(h => h.name === 'From')?.value || '';
+        const oggetto = headers.find(h => h.name === 'Subject')?.value || '';
+        const data = headers.find(h => h.name === 'Date')?.value || '';
+        
+        console.log(`${requestId} INFO    📨 Email da: ${mittente}`);
+        console.log(`${requestId} INFO    📝 Oggetto: ${oggetto}`);
+        
+        // 4. Controlla se qualche regola si applica
+        for (const regola of regoleResult.rows) {
+          let match = true;
+          
+          // Controlla pattern oggetto
+          if (regola.pattern_oggetto) {
+            const pattern = regola.pattern_oggetto.replace(/%/g, '.*');
+            const regex = new RegExp(pattern, 'i');
+            if (!regex.test(oggetto)) {
+              match = false;
+            }
+          }
+          
+          // Controlla pattern mittente
+          if (match && regola.pattern_mittente) {
+            const pattern = regola.pattern_mittente.replace(/%/g, '.*');
+            const regex = new RegExp(pattern, 'i');
+            if (!regex.test(mittente)) {
+              match = false;
+            }
+          }
+          
+          // Se c'è match, inoltra
+          if (match) {
+            console.log(`${requestId} INFO    ✅ Match con regola: ${regola.nome_regola}`);
+            
+            try {
+              // Estrai testo email (per placeholder se necessario)
+              const testoOriginale = getEmailBody(emailDetails.data.payload);
+              
+              // Prepara dati per template
+              const templateData = {
+                mittente,
+                oggetto,
+                data: new Date(data).toLocaleString('it-IT'),
+                ora: new Date(data).toLocaleTimeString('it-IT'),
+                testoOriginale: regola.includi_testo_originale ? testoOriginale : ''
+              };
+              
+              // Genera messaggio personalizzato
+              const messaggioPersonalizzato = replacePlaceholders(regola.corpo_template, templateData);
+              
+              // Decodifica il messaggio RAW originale
+              const originalRawDecoded = Buffer.from(emailRaw.data.raw, 'base64').toString('utf-8');
+              
+              // Crea email inoltrata in stile Gmail nativo
+              const rawMessage = createForwardedMimeMessage(
+                regola.destinatari,
+                regola.destinatari_cc || [],
+                oggetto,
+                messaggioPersonalizzato,
+                originalRawDecoded
+              );
+              
+              await gmail.users.messages.send({
+                userId: 'me',
+                requestBody: {
+                  raw: rawMessage
+                }
+              });
+              
+              console.log(`${requestId} INFO    ✉️  Email inoltrata a: ${regola.destinatari.join(', ')}`);
+              
+              // Log nel database
+              await client.query(`
+                INSERT INTO log_inoltri_email 
+                (regola_id, email_id, mittente, oggetto, destinatari, destinatari_cc, esito)
+                VALUES ($1, $2, $3, $4, $5, $6, 'successo')
+              `, [regola.id, message.id, mittente, oggetto, regola.destinatari, regola.destinatari_cc || []]);
+              
+              emailInoltrate++;
+              
+              // Aggiungi label PROTOCOLLATO/INOLTRATO
+              await gmail.users.messages.modify({
+                userId: 'me',
+                id: message.id,
+                requestBody: {
+                  addLabelIds: [inoltratoLabelId]
+                }
+              });
+              
+              console.log(`${requestId} INFO    🏷️  Label applicata: PROTOCOLLATO/INOLTRATO`);
+              
+            } catch (error) {
+              console.error(`${requestId} ERROR   ❌ Errore inoltrando email: ${error.message}`);
+              
+              // Log errore nel database
+              await client.query(`
+                INSERT INTO log_inoltri_email 
+                (regola_id, email_id, mittente, oggetto, destinatari, destinatari_cc, esito, errore)
+                VALUES ($1, $2, $3, $4, $5, $6, 'errore', $7)
+              `, [regola.id, message.id, mittente, oggetto, regola.destinatari, regola.destinatari_cc || [], error.message]);
+            }
+            
+            // Una sola regola per email (prima che matcha)
+            break;
+          }
+        }
+        
+      } catch (error) {
+        console.error(`${requestId} ERROR   ❌ Errore processando email ${message.id}: ${error.message}`);
+      }
+    }
+    
+    console.log(`${requestId} INFO  ✅ Processo completato: ${emailInoltrate} email inoltrate`);
+    
+    return {
+      statusCode: 200,
+      body: JSON.stringify({ 
+        message: 'Processo completato',
+        emailInoltrate 
+      })
+    };
+    
+  } catch (error) {
+    console.error(`${requestId} ERROR ❌ Errore generale: ${error.message}`);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ error: error.message })
+    };
+  } finally {
+    if (client) client.release();
+  }
+};

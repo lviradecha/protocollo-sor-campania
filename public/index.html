@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema Protocollo - SOR Campania</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Banner con Logo -->
+    <header class="banner">
+        <div class="banner-content">
+            <div class="banner-logo">
+                <img src="logo-sor.jpg" alt="Logo SOR Campania">
+            </div>
+            <div class="banner-text">
+                <h1 class="banner-title">CROCE ROSSA ITALIANA</h1>
+                <p class="banner-subtitle">Sala Operativa Regionale - Campania | Sistema di Protocollazione</p>
+            </div>
+            <button onclick="logout()" class="btn-logout">🚪 Esci</button>
+            <div class="banner-version">v2.0</div>
+        </div>
+    </header>
+
+    <!-- Navigation Menu -->
+    <nav class="nav-menu">
+        <div class="nav-content">
+            <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+            <a href="index.html" class="nav-link active">📄 Protocollo</a>
+            <a href="registro.html" class="nav-link">📋 Registro</a>
+            <a href="attestati.html" class="nav-link">📜 Attestati</a>
+            <a href="registro-attestati.html" class="nav-link">📊 Reg. Attestati</a>
+            <a href="inoltri.html" class="nav-link">📧 Inoltri Email</a>
+            <a href="admin.html" class="nav-link" id="linkAdmin" style="display: none;">👥 Utenti</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <div class="card">
+            <h2>📄 Protocollazione Documenti PDF</h2>
+            
+            <div class="info-box">
+                <p><strong>ℹ️ Informazioni:</strong> Carica un documento PDF per assegnargli un numero di protocollo ufficiale. Il sistema aggiungerà automaticamente l'intestazione con numero progressivo e data.</p>
+            </div>
+
+            <div class="upload-section" style="margin-bottom: 25px;">
+                <input type="file" id="pdfFile" accept="application/pdf" style="display: none;">
+                <label for="pdfFile" class="upload-box" id="uploadBox" style="display: block; padding: 40px; border: 3px dashed #d32f2f; border-radius: 10px; text-align: center; cursor: pointer; transition: all 0.3s ease; background: #fafafa;">
+                    <span id="uploadText" style="font-size: 18px; color: #d32f2f; font-weight: 600;">📄 Clicca per selezionare PDF</span>
+                </label>
+            </div>
+
+            <form id="protocolloForm">
+                <div class="form-group">
+                    <label for="tipoProtocollo">📥 Tipo Protocollo *</label>
+                    <select id="tipoProtocollo" required>
+                        <option value="">Seleziona tipo...</option>
+                        <option value="E">E - Entrata</option>
+                        <option value="U">U - Uscita</option>
+                        <option value="I">I - Interno</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="cartaIntestata">🏛️ Carta Intestata *</label>
+                    <select id="cartaIntestata" required>
+                        <option value="SOR">SOR - Sala Operativa Regionale</option>
+                        <option value="DELEGATO">Delegato Regionale Campania</option>
+                        <option value="COMITATO">Comitato Regionale Campania</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="oggetto">📝 Oggetto *</label>
+                    <input type="text" id="oggetto" placeholder="Es: Attivazione personale e mezzi..." required>
+                </div>
+
+                <div class="form-group">
+                    <label for="destinatari">👥 Mittente/Destinatario</label>
+                    <textarea id="destinatari" rows="3" placeholder="Es: Comitato CRI Napoli"></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary" id="btnProtocolla">
+                    📄 Protocolla Documento
+                </button>
+            </form>
+
+            <div id="resultSection" class="result" style="display: none;"></div>
+            <div id="errorSection" class="error" style="display: none;"></div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>📞 sor.campania@cri.it | +39 081 7810011 (selezione 2)</p>
+        <p class="footer-small">© 2025 Croce Rossa Italiana - Comitato Regionale Campania</p>
+        <p class="footer-small">Sistema di Protocollazione Digitale - Versione 2.0</p>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script>
+        // Mostra link admin solo per admin
+        if (sessionStorage.getItem('ruolo') === 'admin') {
+            document.getElementById('linkAdmin').style.display = 'flex';
+        }
+    </script>
+    <script src="app.js"></script>
+</body>
+</html>

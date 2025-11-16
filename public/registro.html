@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro Protocolli - SOR Campania</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Ottimizzazione tabella registro - NO SCROLL ORIZZONTALE */
+        #tableSection {
+            width: 100%;
+            overflow-x: hidden !important;
+        }
+        
+        #protocolliTable {
+            table-layout: fixed;
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        #protocolliTable td {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            padding: 12px 6px;
+            max-width: 0; /* Forza il text-overflow */
+        }
+        
+        #protocolliTable td.oggetto-cell {
+            cursor: help;
+        }
+        
+        #protocolliTable td.oggetto-cell:hover {
+            position: relative;
+            background-color: #fff3e0;
+        }
+        
+        #protocolliTable th {
+            padding: 12px 6px;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        
+        /* Scrollbar verticale personalizzata */
+        #tableSection::-webkit-scrollbar {
+            width: 10px;
+        }
+        
+        #tableSection::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 5px;
+        }
+        
+        #tableSection::-webkit-scrollbar-thumb {
+            background: #d32f2f;
+            border-radius: 5px;
+        }
+        
+        #tableSection::-webkit-scrollbar-thumb:hover {
+            background: #b71c1c;
+        }
+        
+        /* Tooltip per testo completo */
+        .tooltip-text {
+            position: absolute;
+            background-color: #333;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            z-index: 1000;
+            max-width: 400px;
+            word-wrap: break-word;
+            white-space: normal;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            display: none;
+        }
+        
+        /* Pulsante Google Drive */
+        .btn-drive {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 3px;
+            padding: 6px 10px;
+            background: linear-gradient(135deg, #4285f4, #34a853);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(66, 133, 244, 0.3);
+            white-space: nowrap;
+        }
+        
+        .btn-drive:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(66, 133, 244, 0.4);
+            background: linear-gradient(135deg, #5a95f5, #46b566);
+        }
+        
+        .btn-drive:active {
+            transform: translateY(0);
+        }
+        
+        .drive-icon {
+            font-size: 12px;
+        }
+        
+        .no-document {
+            color: #999;
+            font-size: 11px;
+            font-style: italic;
+        }
+        
+        /* Pulsante Elimina (solo admin) */
+        .btn-elimina {
+            padding: 6px 10px;
+            background: #d32f2f;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(211, 47, 47, 0.3);
+            white-space: nowrap;
+        }
+        
+        .btn-elimina:hover {
+            background: #b71c1c;
+            transform: translateY(-1px);
+            box-shadow: 0 3px 6px rgba(211, 47, 47, 0.4);
+        }
+        
+        .btn-elimina:active {
+            transform: translateY(0);
+        }
+        
+        /* ====================================
+           PULSANTI ICONE COMPATTE - OPZIONE 1
+           ==================================== */
+        
+        /* Colonna Azioni - centra le icone */
+        #protocolliTable td:last-child {
+            text-align: center !important;
+            white-space: nowrap !important;
+            padding: 8px 4px !important;
+        }
+        
+        /* Stile base per tutti i pulsanti icona */
+        #protocolliTable .btn-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 28px;
+            height: 28px;
+            padding: 0;
+            margin: 0 2px;
+            border: none;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+            text-decoration: none;
+        }
+        
+        #protocolliTable .btn-icon:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+        }
+        
+        #protocolliTable .btn-icon:active {
+            transform: translateY(0);
+        }
+        
+        /* Pulsante Drive (blu/verde) */
+        #protocolliTable .btn-icon-drive {
+            background: linear-gradient(135deg, #4285f4, #34a853);
+        }
+        
+        #protocolliTable .btn-icon-drive:hover {
+            background: linear-gradient(135deg, #5a95f5, #46b566);
+        }
+        
+        /* Pulsante Vedi (grigio) */
+        #protocolliTable .btn-icon-vedi {
+            background: #757575;
+            color: white;
+        }
+        
+        #protocolliTable .btn-icon-vedi:hover {
+            background: #616161;
+        }
+        
+        /* Pulsante Sostituisci (arancione) */
+        #protocolliTable .btn-icon-sostituisci {
+            background: linear-gradient(135deg, #ff9800, #f57c00);
+        }
+        
+        #protocolliTable .btn-icon-sostituisci:hover {
+            background: linear-gradient(135deg, #fb8c00, #ef6c00);
+        }
+        
+        /* Pulsante Elimina (rosso) */
+        #protocolliTable .btn-icon-elimina {
+            background: linear-gradient(135deg, #d32f2f, #b71c1c);
+        }
+        
+        #protocolliTable .btn-icon-elimina:hover {
+            background: linear-gradient(135deg, #e53935, #c62828);
+        }
+        
+        /* No document - più discreto */
+        #protocolliTable .no-document {
+            color: #ccc;
+            font-size: 10px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Banner con Logo -->
+    <header class="banner">
+        <div class="banner-content">
+            <div class="banner-logo">
+                <img src="logo-sor.jpg" alt="Logo SOR Campania">
+            </div>
+            <div class="banner-text">
+                <h1 class="banner-title">CROCE ROSSA ITALIANA</h1>
+                <p class="banner-subtitle">Sala Operativa Regionale - Campania | Registro Protocolli</p>
+            </div>
+            <button onclick="logout()" class="btn-logout">🚪 Esci</button>
+            <div class="banner-version">v2.0</div>
+        </div>
+    </header>
+
+    <!-- Navigation Menu -->
+    <nav class="nav-menu">
+        <div class="nav-content">
+            <a href="dashboard.html" class="nav-link">📊 Dashboard</a>
+            <a href="index.html" class="nav-link">📄 Protocollo</a>
+            <a href="registro.html" class="nav-link active">📋 Registro</a>
+            <a href="attestati.html" class="nav-link">📜 Attestati</a>
+            <a href="registro-attestati.html" class="nav-link">📊 Reg. Attestati</a>
+            <a href="admin.html" class="nav-link" id="linkAdmin" style="display: none;">👥 Utenti</a>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container">
+        <div class="card">
+            <h2>📋 Registro Generale Protocolli</h2>
+            
+            <div class="info-box">
+                <p><strong>ℹ️ Registro completo:</strong> Visualizza tutti i documenti protocollati con possibilità di ricerca e filtro.</p>
+            </div>
+
+            <!-- Filtri -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 25px;">
+                <div class="form-group" style="margin: 0;">
+                    <label for="filtroAnno">📅 Anno:</label>
+                    <select id="filtroAnno">
+                        <option value="">Tutti</option>
+                        <option value="2025" selected>2025</option>
+                        <option value="2024">2024</option>
+                        <option value="2023">2023</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin: 0;">
+                    <label for="filtroTipo">📥 Tipo:</label>
+                    <select id="filtroTipo">
+                        <option value="">Tutti</option>
+                        <option value="E">E - Entrata</option>
+                        <option value="U">U - Uscita</option>
+                        <option value="I">I - Interno</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" style="margin: 0; grid-column: span 2;">
+                    <label for="filtroRicerca">🔍 Ricerca:</label>
+                    <input type="text" id="filtroRicerca" placeholder="Cerca per numero, oggetto, mittente...">
+                </div>
+            </div>
+
+            <div style="display: flex; gap: 10px; margin-bottom: 25px;">
+                <button onclick="caricaRegistro()" class="btn-primary">
+                    🔄 Aggiorna Registro
+                </button>
+                <button onclick="exportProtocolliCSV()" class="btn-primary" style="background: #28a745;">
+                    📊 Export CSV
+                </button>
+            </div>
+
+            <!-- Statistiche -->
+            <div id="statsSection" style="display: none; margin-bottom: 25px; padding: 20px; background: #f5f5f5; border-radius: 10px;">
+                <h3 style="margin-bottom: 15px; color: #d32f2f;">📊 Statistiche <span id="statsAnno"></span></h3>
+                <div id="statsGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px;"></div>
+            </div>
+
+            <div id="loadingSection" style="display: none; text-align: center; padding: 40px;">
+                <p style="font-size: 18px;">⏳ Caricamento in corso...</p>
+            </div>
+
+            <div id="emptySection" style="display: none; text-align: center; padding: 40px; color: #999;">
+                <p style="font-size: 18px;">🔭 Nessun protocollo trovato</p>
+            </div>
+
+            <div id="tableSection" style="display: none; overflow-y: auto; overflow-x: hidden; max-height: calc(100vh - 450px); width: 100%;">
+                <table id="protocolliTable" style="table-layout: fixed; width: 100%;">
+                    <thead style="position: sticky; top: 0; background-color: white; z-index: 10; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                        <tr>
+                            <th style="width: 9%;">N. Prot.</th>
+                            <th style="width: 10%;">Data</th>
+                            <th style="width: 5%;">Tipo</th>
+                            <th style="width: 7%;">Carta</th>
+                            <th style="width: 17%;">Mitt./Dest.</th>
+                            <th style="width: 24%;">Oggetto</th>
+                            <th style="width: 6%;">Doc.</th>
+                            <th style="width: 22%;">Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody"></tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>📞 sor.campania@cri.it | +39 081 7810011 (selezione 2)</p>
+        <p class="footer-small">© 2025 Croce Rossa Italiana - Comitato Regionale Campania</p>
+    </footer>
+
+    <script src="auth.js"></script>
+    <script>
+        // Mostra link admin solo per admin
+        if (sessionStorage.getItem('ruolo') === 'admin') {
+            document.getElementById('linkAdmin').style.display = 'flex';
+        }
+        
+        // Funzione per aggiungere tooltip alle celle con testo troncato
+        function addTooltipsToTable() {
+            const cells = document.querySelectorAll('#protocolliTable td');
+            cells.forEach(cell => {
+                if (cell.scrollWidth > cell.clientWidth) {
+                    cell.title = cell.textContent;
+                    cell.style.cursor = 'help';
+                }
+            });
+        }
+        
+        // Aggiungi tooltip dopo il caricamento della tabella
+        const originalCaricaRegistro = window.caricaRegistro;
+        if (originalCaricaRegistro) {
+            window.caricaRegistro = function() {
+                originalCaricaRegistro();
+                setTimeout(addTooltipsToTable, 500);
+            };
+        }
+    </script>
+    <script src="registro.js"></script>
+    
+    <!-- Export CSV Function -->
+    <script>
+    async function exportProtocolliCSV() {
+        try {
+            console.log('📥 Export protocolli CSV...');
+            
+            const anno = document.getElementById('filtroAnno')?.value || '2025';
+            const tipo = document.getElementById('filtroTipo')?.value || '';
+            
+            console.log(`Filtri: anno=${anno}, tipo=${tipo}`);
+            
+            let url = `/.netlify/functions/export-protocolli-csv?anno=${anno}`;
+            if (tipo && tipo !== '') {
+                url += `&tipo=${tipo}`;
+            }
+            
+            console.log('URL:', url);
+            
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`Errore HTTP: ${response.status}`);
+            }
+            
+            const blob = await response.blob();
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(blob);
+            link.download = `Protocolli_${anno}_${tipo || 'Tutti'}_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            console.log('✅ CSV scaricato!');
+            alert('✅ CSV scaricato con successo!');
+            
+        } catch (error) {
+            console.error('❌ Errore:', error);
+            alert('❌ Errore durante export CSV: ' + error.message);
+        }
+    }
+    </script>
+</body>
+</html>

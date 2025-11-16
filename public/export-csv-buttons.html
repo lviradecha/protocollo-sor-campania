@@ -1,0 +1,200 @@
+<!-- ====================================
+     PULSANTI EXPORT CSV
+     ====================================
+     Aggiungi questi snippet alle rispettive pagine
+==================================== -->
+
+<!-- ====================================
+     1. REGISTRO PROTOCOLLI
+     Aggiungi questo pulsante nella sezione filtri/azioni
+==================================== -->
+
+<div class="mb-3">
+  <button 
+    id="exportProtocolliBtn" 
+    class="btn btn-success" 
+    onclick="exportProtocolliCSV()"
+    title="Scarica tutti i protocolli filtrati in formato CSV"
+  >
+    <i class="bi bi-file-earmark-spreadsheet"></i>
+    Export CSV
+  </button>
+  
+  <!-- Opzionale: Info tooltip -->
+  <small class="text-muted ms-2">
+    <i class="bi bi-info-circle"></i>
+    Esporta i protocolli filtrati correntemente visualizzati
+  </small>
+</div>
+
+<!-- ====================================
+     2. REGISTRO ATTESTATI
+     Aggiungi questo pulsante nella sezione filtri/azioni
+==================================== -->
+
+<div class="mb-3">
+  <button 
+    id="exportAttestatiBtn" 
+    class="btn btn-success" 
+    onclick="exportAttestatiCSV()"
+    title="Scarica tutti gli attestati filtrati in formato CSV"
+  >
+    <i class="bi bi-file-earmark-spreadsheet"></i>
+    Export CSV
+  </button>
+  
+  <!-- Opzionale: Info tooltip -->
+  <small class="text-muted ms-2">
+    <i class="bi bi-info-circle"></i>
+    Esporta gli attestati filtrati correntemente visualizzati
+  </small>
+</div>
+
+<!-- ====================================
+     3. FILTRO AVANZATO PER ATTESTATI
+     (Opzionale - se vuoi aggiungere filtro stato email)
+==================================== -->
+
+<div class="mb-3">
+  <label for="filtroEmailStatus" class="form-label">Stato Email</label>
+  <select id="filtroEmailStatus" class="form-select" onchange="filtraAttestati()">
+    <option value="tutti">Tutti gli stati</option>
+    <option value="inviata">Email inviate</option>
+    <option value="non_inviata">Email non inviate</option>
+    <option value="no_email">Nessuna email</option>
+  </select>
+</div>
+
+<!-- ====================================
+     4. INCLUDE SCRIPT
+     Aggiungi alla fine del <body> di entrambe le pagine
+==================================== -->
+
+<script src="/js/export-csv-frontend.js"></script>
+
+<!-- ====================================
+     5. ESEMPIO LAYOUT COMPLETO - REGISTRO PROTOCOLLI
+==================================== -->
+
+<div class="container mt-4">
+  <h2>Registro Protocolli</h2>
+  
+  <!-- Sezione Filtri -->
+  <div class="card mb-4">
+    <div class="card-header bg-primary text-white">
+      <i class="bi bi-funnel"></i> Filtri
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <!-- Filtro Anno -->
+        <div class="col-md-3">
+          <label for="filtroAnno" class="form-label">Anno</label>
+          <select id="filtroAnno" class="form-select" onchange="filtraProtocolli()">
+            <option value="2025">2025</option>
+            <option value="2024">2024</option>
+            <option value="2023">2023</option>
+          </select>
+        </div>
+        
+        <!-- Filtro Tipo -->
+        <div class="col-md-3">
+          <label for="filtroTipo" class="form-label">Tipo</label>
+          <select id="filtroTipo" class="form-select" onchange="filtraProtocolli()">
+            <option value="">Tutti</option>
+            <option value="E">Entrata</option>
+            <option value="U">Uscita</option>
+            <option value="I">Interno</option>
+          </select>
+        </div>
+        
+        <!-- Pulsante Export -->
+        <div class="col-md-6 d-flex align-items-end">
+          <button 
+            id="exportProtocolliBtn" 
+            class="btn btn-success"
+            onclick="exportProtocolliCSV()"
+          >
+            <i class="bi bi-file-earmark-spreadsheet"></i>
+            Export CSV
+          </button>
+          <small class="text-muted ms-2 align-self-center">
+            Scarica protocolli filtrati
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Tabella protocolli -->
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <!-- ... -->
+    </table>
+  </div>
+</div>
+
+<!-- ====================================
+     6. ESEMPIO LAYOUT COMPLETO - REGISTRO ATTESTATI
+==================================== -->
+
+<div class="container mt-4">
+  <h2>Registro Attestati</h2>
+  
+  <!-- Sezione Filtri -->
+  <div class="card mb-4">
+    <div class="card-header bg-success text-white">
+      <i class="bi bi-funnel"></i> Filtri
+    </div>
+    <div class="card-body">
+      <div class="row">
+        <!-- Filtro Evento -->
+        <div class="col-md-4">
+          <label for="filtroEvento" class="form-label">Evento</label>
+          <select id="filtroEvento" class="form-select" onchange="filtraAttestati()">
+            <option value="">Tutti gli eventi</option>
+            <!-- Popolato dinamicamente -->
+          </select>
+        </div>
+        
+        <!-- Filtro Stato Email -->
+        <div class="col-md-3">
+          <label for="filtroEmailStatus" class="form-label">Stato Email</label>
+          <select id="filtroEmailStatus" class="form-select" onchange="filtraAttestati()">
+            <option value="tutti">Tutti</option>
+            <option value="inviata">Inviate</option>
+            <option value="non_inviata">Non inviate</option>
+            <option value="no_email">Nessuna email</option>
+          </select>
+        </div>
+        
+        <!-- Pulsante Export -->
+        <div class="col-md-5 d-flex align-items-end">
+          <button 
+            id="exportAttestatiBtn" 
+            class="btn btn-success"
+            onclick="exportAttestatiCSV()"
+          >
+            <i class="bi bi-file-earmark-spreadsheet"></i>
+            Export CSV
+          </button>
+          <small class="text-muted ms-2 align-self-center">
+            Scarica attestati filtrati
+          </small>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Tabella attestati -->
+  <div class="table-responsive">
+    <table class="table table-striped">
+      <!-- ... -->
+    </table>
+  </div>
+</div>
+
+<!-- ====================================
+     7. ICONE BOOTSTRAP (se non già incluse)
+==================================== -->
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
