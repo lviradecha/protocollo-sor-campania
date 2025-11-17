@@ -164,7 +164,7 @@ async function createGmailStyleForward(to, cc, customMessage, originalMessage, m
   const date = headers.find(h => h.name === 'Date')?.value || '';
   const subject = headers.find(h => h.name === 'Subject')?.value || '';
   const toOriginal = headers.find(h => h.name === 'To')?.value || '';
-  const ccOriginal = headers.find(h => h.name === 'Cc')?.value || '';
+  const ccOriginal = headers.find(h => h.name.toLowerCase() === 'cc')?.value || '';
   
   // Estrai il corpo HTML dell'email originale
   const originalBodyHtml = await extractEmailContent(messageId);
