@@ -16,18 +16,20 @@ exports.handler = async (event) => {
           pattern_oggetto = $2,
           pattern_mittente = $3,
           destinatari = $4,
-          corpo_template = $5,
-          inoltra_allegati = $6,
-          includi_testo_originale = $7,
-          attivo = $8,
+          destinatari_cc = $5,
+          corpo_template = $6,
+          inoltra_allegati = $7,
+          includi_testo_originale = $8,
+          attivo = $9,
           modificato_il = NOW()
-      WHERE id = $9
+      WHERE id = $10
       RETURNING *
     `, [
       data.nome_regola,
       data.pattern_oggetto || null,
       data.pattern_mittente || null,
       data.destinatari,
+      data.destinatari_cc || [],
       data.corpo_template,
       data.inoltra_allegati,
       data.includi_testo_originale,

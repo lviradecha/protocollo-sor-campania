@@ -166,8 +166,6 @@ async function createGmailStyleForward(to, cc, customMessage, originalMessage, m
   const toOriginal = headers.find(h => h.name === 'To')?.value || '';
   const ccOriginal = headers.find(h => h.name.toLowerCase() === 'cc')?.value || '';
   
-  console.log(`DEBUG - CC originale: "${ccOriginal}"`);
-  
   // Estrai il corpo HTML dell'email originale
   const originalBodyHtml = await extractEmailContent(messageId);
   
@@ -175,8 +173,7 @@ async function createGmailStyleForward(to, cc, customMessage, originalMessage, m
   const attachments = await extractAttachments(messageId, originalMessage.payload);
   
   // Costruisci l'HTML del forward in stile Gmail
-  let forwardHtml = `<div dir="ltr">${customMessage}</div><br><br>`;
-  forwardHtml += `<div class="gmail_quote">`;
+  let forwardHtml = `${customMessage}<br><br>`;
   forwardHtml += `---------- Messaggio inoltrato ---------<br>`;
   forwardHtml += `Da: <strong>${from}</strong><br>`;
   forwardHtml += `Data: ${new Date(date).toLocaleString('it-IT', { 
@@ -189,12 +186,11 @@ async function createGmailStyleForward(to, cc, customMessage, originalMessage, m
   })}<br>`;
   forwardHtml += `Oggetto: ${subject}<br>`;
   forwardHtml += `A: ${toOriginal}<br>`;
-  if (ccOriginal && ccOriginal.trim() !== '') {
+  if (ccOriginal) {
     forwardHtml += `Cc: ${ccOriginal}<br>`;
   }
   forwardHtml += `<br><br>`;
   forwardHtml += originalBodyHtml;
-  forwardHtml += `</div>`;
   
   // Costruisci il messaggio MIME
   let message = [
@@ -218,19 +214,14 @@ async function createGmailStyleForward(to, cc, customMessage, originalMessage, m
     ''
   );
   
-  // Aggiungi allegati con encoding corretto (linee da 76 caratteri)
+  // Aggiungi allegati
   for (const att of attachments) {
     message.push(`--${boundary}`);
     message.push(`Content-Type: ${att.mimeType}; name="${att.filename}"`);
     message.push('Content-Transfer-Encoding: base64');
     message.push(`Content-Disposition: attachment; filename="${att.filename}"`);
     message.push('');
-    
-    // Gli allegati da Gmail API sono già in base64, ma vanno divisi in linee da 76 caratteri
-    const base64Data = att.data;
-    const lines = base64Data.match(/.{1,76}/g) || [];
-    lines.forEach(line => message.push(line));
-    
+    message.push(att.data);
     message.push('');
   }
   

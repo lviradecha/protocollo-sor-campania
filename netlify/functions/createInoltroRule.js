@@ -11,15 +11,16 @@ exports.handler = async (event) => {
     
     const result = await pool.query(`
       INSERT INTO regole_inoltro_email 
-      (nome_regola, pattern_oggetto, pattern_mittente, destinatari, 
+      (nome_regola, pattern_oggetto, pattern_mittente, destinatari, destinatari_cc,
        corpo_template, inoltra_allegati, includi_testo_originale, attivo)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
       RETURNING *
     `, [
       data.nome_regola,
       data.pattern_oggetto || null,
       data.pattern_mittente || null,
       data.destinatari,
+      data.destinatari_cc || [],
       data.corpo_template,
       data.inoltra_allegati !== false,
       data.includi_testo_originale !== false,
