@@ -136,7 +136,7 @@ async function extractAttachments(messageId, payload) {
         attachments.push({
           filename: part.filename,
           mimeType: part.mimeType,
-          data: attachment.data.data
+          data: attachment.data.data // Questo è già in base64 URL-safe
         });
       } catch (error) {
         console.error(`Errore recupero allegato ${part.filename}:`, error.message);
@@ -154,9 +154,34 @@ async function extractAttachments(messageId, payload) {
   return attachments;
 }
 
+// Funzione per convertire base64 URL-safe a base64 standard
+function urlSafeBase64ToBase64(urlSafeBase64) {
+  // Converti da URL-safe a standard base64
+  let base64 = urlSafeBase64.replace(/-/g, '+').replace(/_/g, '/');
+  
+  // Aggiungi padding se necessario
+  while (base64.length % 4) {
+    base64 += '=';
+  }
+  
+  return base64;
+}
+
+// Funzione per formattare base64 in righe di 76 caratteri (RFC 2045)
+function formatBase64(base64String) {
+  const lineLength = 76;
+  const lines = [];
+  
+  for (let i = 0; i < base64String.length; i += lineLength) {
+    lines.push(base64String.substring(i, i + lineLength));
+  }
+  
+  return lines.join('\r\n');
+}
+
 // Funzione per creare email inoltrata identica a Gmail manuale
 async function createGmailStyleForward(to, cc, customMessage, originalMessage, messageId) {
-  const boundary = '----=_Part_' + Date.now();
+  const boundary = '----=_Part_' + Date.now() + '_' + Math.random().toString(36).substring(2);
   
   // Estrai headers dall'email originale
   const headers = originalMessage.payload.headers;
@@ -171,6 +196,8 @@ async function createGmailStyleForward(to, cc, customMessage, originalMessage, m
   
   // Estrai gli allegati
   const attachments = await extractAttachments(messageId, originalMessage.payload);
+  
+  console.log(`INFO    📎 Trovati ${attachments.length} allegati da inoltrare`);
   
   // Costruisci l'HTML del forward in stile Gmail
   let forwardHtml = `${customMessage}<br><br>`;
@@ -216,24 +243,39 @@ async function createGmailStyleForward(to, cc, customMessage, originalMessage, m
   
   // Aggiungi allegati
   for (const att of attachments) {
+    console.log(`INFO      📎 Aggiungendo allegato: ${att.filename} (${att.mimeType})`);
+    
+    // Converti da URL-safe base64 a base64 standard
+    const standardBase64 = urlSafeBase64ToBase64(att.data);
+    
+    // Formatta il base64 in righe di 76 caratteri
+    const formattedBase64 = formatBase64(standardBase64);
+    
     message.push(`--${boundary}`);
     message.push(`Content-Type: ${att.mimeType}; name="${att.filename}"`);
     message.push('Content-Transfer-Encoding: base64');
     message.push(`Content-Disposition: attachment; filename="${att.filename}"`);
     message.push('');
-    message.push(att.data);
+    message.push(formattedBase64);
     message.push('');
   }
   
   message.push(`--${boundary}--`);
   
-  return Buffer.from(message.join('\r\n')).toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  const rawMessage = message.join('\r\n');
+  
+  // Converti in base64 URL-safe per Gmail API
+  return Buffer.from(rawMessage)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/, '');
 }
 
 // Funzione principale
 exports.handler = async (event, context) => {
   const requestId = context.awsRequestId?.substring(0, 8) || 'manual';
-  console.log(`${requestId} INFO  🔄 Avvio processo inoltro automatico email`);
+  console.log(`${requestId} INFO  📄 Avvio processo inoltro automatico email`);
   
   let client;
   
