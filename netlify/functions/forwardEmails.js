@@ -221,6 +221,7 @@ async function createGmailStyleForward(to, cc, customMessage, originalMessage, m
   
   // Costruisci il messaggio MIME
   let message = [
+    `From: "SOR Campania" <sor.campania@cri.it>`,
     `To: ${to.join(', ')}`,
   ];
   
