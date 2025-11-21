@@ -205,9 +205,9 @@ exports.handler = async (event, context) => {
 
       // Nome file per Drive
       const oggettoSanitized = (oggetto || 'documento')
-        .replace(/[^a-zA-Z0-9_\-\s]/g, '')  // Rimuove caratteri speciali
+        .replace(/[\/\\:*?"<>|]/g, '_')      // Sostituisce solo caratteri vietati nei filesystem
         .replace(/\s+/g, '_')                // Sostituisce spazi con underscore
-        .substring(0, 100);                  // Max 100 caratteri per l'oggetto
+        .substring(0, 150);                  // Max 150 caratteri per l'oggetto
       
       const numeroSemplice = String(numeroProgressivo).padStart(4, '0');
       const nomeFileProtocollato = `${numeroSemplice}${tipoProtocollo}_SOR_CAMPANIA_${oggettoSanitized}.pdf`;
