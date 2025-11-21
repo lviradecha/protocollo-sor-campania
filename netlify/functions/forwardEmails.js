@@ -369,8 +369,8 @@ exports.handler = async (event, context) => {
             console.log(`${requestId} INFO    ✅ Match con regola: ${regola.nome_regola}`);
             
             try {
-              // Genera messaggio personalizzato (usa direttamente il template come HTML)
-              const messaggioPersonalizzato = textToHtml(regola.corpo_template);
+              // Usa direttamente il template HTML senza conversione
+              const messaggioPersonalizzato = regola.corpo_template;
               
               // Crea email inoltrata in stile Gmail manuale
               const rawMessage = await createGmailStyleForward(
